@@ -6,6 +6,8 @@ import { authConfig } from "./auth.config"
 import conversationsRouter from "./routes/conversations"
 import messagesRouter from "./routes/messages"
 import eventsRouter from "./routes/events"
+import clientsRouter from "./routes/clients"
+import companiesRouter from "./routes/companies"
 
 const app = express()
 const PORT = process.env.PORT || 3000
@@ -24,6 +26,8 @@ app.use("/api/auth/*", ExpressAuth(authConfig))
 
 app.use("/api/v1/conversations", conversationsRouter)
 app.use("/api/v1/messages", messagesRouter)
+app.use("/api/v1/clients", clientsRouter)
+app.use("/api/v1/companies", companiesRouter)
 app.use("/api/events", eventsRouter)
 
 app.get("/health", (_req, res) => {
