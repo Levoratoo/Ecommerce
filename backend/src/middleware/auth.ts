@@ -18,17 +18,24 @@ declare global {
 
 // Middleware que protege todas as rotas da API
 // Lê o cookie de sessão do Auth.js, valida e injeta req.user
+type SessionUser = {
+  id: string
+  organizationId: string
+  role: string
+}
+
 export async function authMiddleware(req: Request, res: Response, next: NextFunction) {
   const session = await getSession(req, authConfig)
+  const user = session?.user as SessionUser | undefined
 
-  if (!session?.user?.id || !session.user.organizationId) {
+  if (!user?.id || !user.organizationId) {
     return res.status(401).json({ error: "Não autorizado" })
   }
 
   req.user = {
-    userId: session.user.id,
-    organizationId: session.user.organizationId,
-    role: session.user.role,
+    userId: user.id,
+    organizationId: user.organizationId,
+    role: user.role,
   }
 
   next()

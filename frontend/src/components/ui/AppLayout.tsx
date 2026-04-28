@@ -1,25 +1,25 @@
 import { NavLink, Outlet, useNavigate } from 'react-router-dom'
-import { Inbox, Users, Kanban, LogOut } from 'lucide-react'
+import { Inbox, Users, LogOut } from 'lucide-react'
 import { useAuthStore } from '@/store/auth'
+import { logout } from '@/lib/auth'
 
 const navItems = [
-  { to: '/inbox',    label: 'Caixa de entrada', Icon: Inbox },
-  { to: '/contacts', label: 'Contatos',          Icon: Users },
-  { to: '/pipeline', label: 'Pipeline',           Icon: Kanban },
+  { to: '/inbox',   label: 'Caixa de entrada', Icon: Inbox },
+  { to: '/clients', label: 'Clientes',          Icon: Users },
 ]
 
 export default function AppLayout() {
   const navigate = useNavigate()
   const { user, clearAuth } = useAuthStore()
 
-  function handleLogout() {
+  async function handleLogout() {
+    await logout()
     clearAuth()
     navigate('/login')
   }
 
   return (
-    <div className="flex h-screen bg-melon-50">
-      {/* Sidebar */}
+    <div className="flex h-screen bg-gray-50">
       <aside className="w-56 flex flex-col bg-white border-r border-gray-200/80 shrink-0">
 
         <div className="h-14 flex items-center px-4 border-b border-gray-200/80">
@@ -32,10 +32,10 @@ export default function AppLayout() {
               key={to}
               to={to}
               className={({ isActive }) =>
-                `group flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm font-medium transition-colors duration-150 ${
+                `flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm font-medium transition-colors duration-150 ${
                   isActive
-                    ? 'bg-melon-100 text-melon-600'
-                    : 'text-gray-900 hover:text-melon-500 hover:bg-melon-50'
+                    ? 'bg-gray-100 text-gray-900'
+                    : 'text-gray-500 hover:text-gray-900 hover:bg-gray-50'
                 }`
               }
             >
@@ -55,7 +55,7 @@ export default function AppLayout() {
 
           <button
             onClick={handleLogout}
-            className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm font-medium text-gray-900 hover:text-melon-500 hover:bg-melon-50 transition-colors duration-150"
+            className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm font-medium text-gray-500 hover:text-gray-900 hover:bg-gray-50 transition-colors duration-150"
           >
             <LogOut size={16} />
             Sair

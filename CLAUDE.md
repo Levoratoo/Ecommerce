@@ -23,9 +23,13 @@ CRM web integrado ao WhatsApp, distribuído como SaaS multi-tenant. Permite que 
 - Monetização e onboarding self-service são pós-MVP
 
 **Módulos do MVP:**
-1. **Caixa de entrada unificada** — conversas WhatsApp em tempo real
-2. **Contatos com abas** — cadastro, edição, histórico, navegação por abas
-3. **Pipeline Kanban** — cards arrastáveis vinculados a contatos
+1. **Autenticação** — login com email e senha, JWT via Auth.js, 1 usuário por organização
+2. **Caixa de entrada WhatsApp** — conversas em tempo real, indicador de não lidas, envio e recebimento via Evolution API
+3. **Clientes** — cadastro, edição, vinculação com conversas, abas por cliente (estado via Zustand)
+4. **Empresa contratante** — dados da empresa, lista de contatos internos
+5. **Lembretes** — título, descrição, data/hora, vínculo com cliente ou empresa, notificação visual via polling
+
+**Pipeline Kanban foi removido do escopo.**
 
 ---
 
@@ -417,8 +421,8 @@ A Evolution API roda como serviço único no Railway, mas gerencia múltiplas in
 2. Extrair instance_name do campo "instance"
 3. Buscar organization_id via evolution_instances WHERE instance_name = ?
 4. Extrair phone_number de remoteJid (remover @s.whatsapp.net)
-5. UPSERT em contacts (organization_id + phone_number)
-6. UPSERT em conversations (organization_id + whatsapp_chat_id)
+5. UPSERT em clients (organization_id + whatsapp)
+6. UPSERT em conversations (organization_id + whatsapp_chat_id, client_id)
 7. INSERT em messages (verificar UNIQUE em whatsapp_message_id para evitar duplicata)
 8. Atualizar conversations.last_message_at e unread_count
 9. Emitir evento SSE para clientes conectados desse organization_id
@@ -520,42 +524,51 @@ data: { conversation_id, unread_count, last_message_at }
 
 A sequência abaixo garante que algo funcional exista o mais cedo possível, cada etapa entrega valor testável.
 
-### Fase 1 — Fundação (banco + auth)
+### Fase 1 — Fundação (banco + auth) ✅ Concluída
 1. Criar projeto Neon, rodar schema SQL
-2. Configurar backend Express com Auth.js (login/logout com email+senha)
-3. Implementar middleware de tenant (extrai `organization_id` do JWT)
+2. Configurar backend Express com Auth.js (login/logout com email+senha, cookie-based)
+3. Implementar middleware de tenant (extrai `organization_id` da sessão Auth.js)
 4. Seed: criar organização e usuário owner da primeira cliente
-5. Testar: login retorna JWT com `organization_id` correto
+5. Login funcional com redirecionamento para inbox
 
-### Fase 2 — Evolution API conectada
-1. Deploy da Evolution API no Railway
-2. Criar instância para a primeira organização
-3. Configurar webhook apontando para o backend
-4. Implementar `POST /webhooks/evolution` com processamento básico (salvar mensagem no banco)
-5. Testar: mandar mensagem no WhatsApp → aparece no banco
+### Fase 2A — Evolution API deployada ✅ Concluída
+1. Deploy da Evolution API no Fly.io com Dockerfile customizado
+2. Banco `evolution_api` no Neon conectado via `DATABASE_CONNECTION_URI`
+3. API respondendo autenticada
 
-### Fase 3 — Caixa de entrada (MVP funcional)
-1. Implementar `GET /api/v1/conversations` e `GET /api/v1/conversations/:id`
-2. Implementar `POST /api/v1/messages` (envio via Evolution API)
-3. Implementar endpoint SSE `GET /api/events`
-4. Frontend: tela de conversas + thread de mensagens
-5. Frontend: conectar SSE, atualizar UI em tempo real
-6. Testar: conversa completa — receber e enviar mensagem pelo painel
+### Fase 2B — Webhook + rotas de backend (pendente)
+1. Implementar `POST /webhooks/evolution` com processamento completo
+2. UPSERT de clients e conversations ao receber mensagem
+3. Testar: mandar mensagem no WhatsApp → aparece no banco → aparece na inbox
 
-### Fase 4 — Contatos com abas
-1. Implementar CRUD de contatos no backend
-2. Frontend: sistema de abas (cada contato abre em aba própria)
-3. Frontend: histórico de conversa dentro da aba do contato
-4. Testar: abrir múltiplos contatos em abas simultâneas
+### Fase 3 — Caixa de entrada ✅ Concluída
+1. Backend: `GET /api/v1/conversations`, `GET /api/v1/conversations/:id`, `POST /api/v1/messages`
+2. Backend: endpoint SSE `GET /api/events`
+3. Frontend: ConversationList + MessageThread + useSSE hook
+4. Frontend atualiza em tempo real via SSE
 
-### Fase 5 — Pipeline Kanban
-1. Implementar seed de colunas padrão por organização
-2. Implementar `GET /api/v1/pipeline` e `PATCH /api/v1/pipeline/cards/:id/move`
-3. Frontend: board Kanban com drag-and-drop
-4. Frontend: abrir conversa do WhatsApp direto do card
-5. Testar: criar card, mover entre colunas, abrir conversa
+### Fase 4 — Clientes (próxima)
+1. Backend: CRUD completo (`GET`, `POST`, `PATCH`, `DELETE /api/v1/clients`)
+2. Frontend: página de clientes com sistema de abas
+3. Cada cliente abre em aba própria com histórico de conversa
+4. Testar: cadastrar cliente manualmente, abrir múltiplas abas
 
-### Fase 6 — Polimento e deploy
+### Fase 5 — Empresas
+1. Backend: CRUD de empresas (`/api/v1/companies`) + vinculação de clientes
+2. Frontend: página de empresas com lista e formulário
+3. Vincular clientes a empresas dentro da aba da empresa
+
+### Fase 6 — Lembretes
+1. Backend: CRUD de lembretes (`/api/v1/reminders`)
+2. Frontend: listagem + criação de lembretes vinculados a clientes
+3. Polling a cada 60s para notificações de lembretes vencidos
+
+### Fase 7 — Gerenciamento WhatsApp
+1. Backend: rotas `/api/v1/whatsapp/status`, `/connect`, `/disconnect`
+2. Frontend: painel de status + QR Code
+3. Conectar instância junto com a primeira cliente
+
+### Fase 8 — Deploy final
 1. Deploy do frontend no Vercel
 2. Deploy do backend no Railway
 3. Variáveis de ambiente configuradas em produção
@@ -706,17 +719,19 @@ if (secret !== process.env.EVOLUTION_WEBHOOK_SECRET) {
 **Última sessão:** 2026-04-28
 
 **O que foi feito:**
-- Fase 1 concluída (sessão anterior): banco de dados, backend Express com Auth.js, middleware de tenant, seed com organização "Projeto Sardinha"
-- Fase 2A concluída: banco `evolution_api` criado no Neon; Evolution API deployada no Fly.io com Dockerfile customizado; conectada ao banco correto; respondendo autenticada (`GET /instance/fetchInstances` retorna `[]`)
-- Decisões técnicas desta sessão: a Evolution API usa `DATABASE_CONNECTION_URI` (não `DATABASE_URL`) para conexão Prisma; a imagem Docker tem um `.env` interno com valores hardcoded do Docker Compose que sobrescreve env vars — resolvido com entrypoint customizado que corrige o `.env` antes do startup e usa `prisma migrate reset --force`; Evolution API hospedada no Fly.io com Dockerfile em `evolution/`
+- Reset de escopo: Pipeline Kanban removido; novos módulos adicionados (Clientes, Empresas, Lembretes)
+- Schema do banco reescrito do zero com novas tabelas: `companies`, `company_contacts`, `clients`, `reminders`; `conversations` agora referencia `clients` (não `contacts`); `messages` usa `created_at` e índice único parcial em `whatsapp_message_id`
+- Auth migrada para cookie-based (Auth.js session) — sem Bearer token no frontend
+- Inbox completa: ConversationList, MessageThread, useSSE hook, SSE endpoint, rotas de conversas e mensagens
+- Login funcional, inbox exibindo conversas em tempo real
 
 **Pendências:**
-- Fase 2B: implementar código do backend (webhook processor, rotas WhatsApp, cliente Evolution API, SSE manager)
-- Fase 2C: criar instância WhatsApp e conectar via QR Code (fazer junto com a primeira cliente ou ao final do desenvolvimento)
-- Fase 3: frontend (caixa de entrada, SSE, envio de mensagens)
-- Fase 4: contatos com abas
-- Fase 5: pipeline Kanban
-- Fase 6: deploy completo (backend no Railway, frontend no Vercel)
+- Fase 2B: implementar `POST /webhooks/evolution` (webhook processor com UPSERT de clients)
+- Fase 4: módulo Clientes (CRUD backend + frontend com abas)
+- Fase 5: módulo Empresas
+- Fase 6: módulo Lembretes
+- Fase 7: gerenciamento WhatsApp (QR Code, status)
+- Fase 8: deploy completo (backend Railway, frontend Vercel)
 
 **Detalhes técnicos importantes — Evolution API no Fly.io:**
 - App: `melao-evolution-api.fly.dev`
@@ -724,6 +739,14 @@ if (secret !== process.env.EVOLUTION_WEBHOOK_SECRET) {
 - Banco: `evolution_api` no Neon (projeto melao-gestor), conectado via URL direta (sem pooler) em `DATABASE_CONNECTION_URI`
 - Dockerfile customizado em `evolution/` com `docker-entrypoint.sh` que corrige o `.env` da imagem antes do startup
 - `SERVER_URL` deve apontar para `https://melao-evolution-api.fly.dev`
+
+**Schema atual — tabelas principais:**
+- `organizations`, `users`, `evolution_instances`
+- `clients` (whatsapp, name, company_name, notes, tags)
+- `companies` (name, domain, notes, tags) + `company_contacts` (pivot)
+- `conversations` (client_id nullable, whatsapp_chat_id, unread_count)
+- `messages` (direction 'in'/'out', content, created_at)
+- `reminders` (client_id, title, due_at, done)
 
 ## Design System
 

@@ -9,6 +9,11 @@ declare module "@auth/core/types" {
       role: string
     } & DefaultSession["user"]
   }
+
+  interface User {
+    organizationId?: string
+    role?: string
+  }
 }
 
 declare module "@auth/core/jwt" {

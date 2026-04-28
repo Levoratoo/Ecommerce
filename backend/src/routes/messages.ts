@@ -18,27 +18,22 @@ router.post("/", async (req, res) => {
   }
 
   try {
-    // Verifica que a conversa pertence ao tenant e pega o whatsapp_chat_id
     const [conv] = await db`
       SELECT whatsapp_chat_id
       FROM conversations
       WHERE id = ${conversation_id} AND organization_id = ${orgId}
     `
-
     if (!conv) return res.status(404).json({ error: "Conversa não encontrada" })
 
-    // Busca a instância Evolution API do tenant
     const [instance] = await db`
       SELECT instance_name, api_url, api_key
       FROM evolution_instances
       WHERE organization_id = ${orgId}
     `
-
     if (!instance) {
       return res.status(503).json({ error: "WhatsApp não configurado para esta organização" })
     }
 
-    // whatsapp_chat_id tem formato 5585999887766@s.whatsapp.net
     const number = (conv.whatsapp_chat_id as string).replace(/@.*$/, "")
 
     await sendText(
@@ -50,9 +45,9 @@ router.post("/", async (req, res) => {
     )
 
     const [message] = await db`
-      INSERT INTO messages (organization_id, conversation_id, direction, content, status)
-      VALUES (${orgId}, ${conversation_id}, 'out', ${content}, 'sent')
-      RETURNING id, direction, content, status, sent_at
+      INSERT INTO messages (organization_id, conversation_id, direction, content)
+      VALUES (${orgId}, ${conversation_id}, 'out', ${content})
+      RETURNING id, conversation_id, organization_id, whatsapp_message_id, content, direction, created_at
     `
 
     await db`
@@ -62,13 +57,13 @@ router.post("/", async (req, res) => {
     `
 
     const payload = {
-      id: message.id,
-      conversationId: conversation_id,
-      direction: message.direction,
-      content: message.content,
-      status: message.status,
-      sentAt: message.sent_at,
+      id:                message.id,
+      conversationId:    message.conversation_id,
+      organizationId:    message.organization_id,
       whatsappMessageId: null,
+      content:           message.content,
+      direction:         message.direction,
+      createdAt:         message.created_at,
     }
 
     emit(orgId, "new_message", { conversation_id, message: payload })
