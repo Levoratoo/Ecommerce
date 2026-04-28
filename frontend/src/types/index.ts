@@ -62,6 +62,18 @@ export interface Message {
   createdAt: string
 }
 
+export interface ClientConversation {
+  id: string
+  whatsappChatId: string
+  lastMessageAt: string | null
+  unreadCount: number
+  messages: Message[]
+}
+
+export interface ClientDetail extends Client {
+  conversation: ClientConversation | null
+}
+
 export interface Reminder {
   id: string
   organizationId: string

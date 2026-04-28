@@ -8,6 +8,7 @@ import messagesRouter from "./routes/messages"
 import eventsRouter from "./routes/events"
 import clientsRouter from "./routes/clients"
 import companiesRouter from "./routes/companies"
+import remindersRouter from "./routes/reminders"
 
 const app = express()
 const PORT = process.env.PORT || 3000
@@ -29,6 +30,7 @@ app.use("/api/v1/conversations", conversationsRouter)
 app.use("/api/v1/messages", messagesRouter)
 app.use("/api/v1/clients", clientsRouter)
 app.use("/api/v1/companies", companiesRouter)
+app.use("/api/v1/reminders", remindersRouter)
 app.use("/api/events", eventsRouter)
 
 app.get("/health", (_req, res) => {

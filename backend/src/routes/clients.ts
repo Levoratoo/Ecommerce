@@ -12,7 +12,8 @@ router.get("/", async (req, res) => {
   const page   = Math.max(1, parseInt(req.query.page as string) || 1)
   const limit  = Math.min(50, parseInt(req.query.limit as string) || 30)
   const offset = (page - 1) * limit
-  const search = (req.query.search as string) || ""
+  const search    = (req.query.search    as string) || ""
+  const companyId = (req.query.company_id as string) || ""
 
   try {
     const rows = await db`
@@ -24,6 +25,7 @@ router.get("/", async (req, res) => {
       FROM clients cl
       LEFT JOIN companies co ON co.id = cl.company_id
       WHERE cl.organization_id = ${orgId}
+        ${companyId ? db`AND cl.company_id = ${companyId}` : db``}
         ${search
           ? db`AND (cl.name ILIKE ${"%" + search + "%"} OR cl.whatsapp ILIKE ${"%" + search + "%"})`
           : db``}

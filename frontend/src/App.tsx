@@ -1,8 +1,6 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import LoginPage from './pages/LoginPage'
-import InboxPage from './pages/InboxPage'
-import ClientsPage from './pages/ClientsPage'
-import AppLayout from './components/ui/AppLayout'
+import AppPage from './pages/AppPage'
 import ProtectedRoute from './components/ui/ProtectedRoute'
 
 export default function App() {
@@ -12,17 +10,15 @@ export default function App() {
         <Route path="/login" element={<LoginPage />} />
 
         <Route
+          path="/*"
           element={
             <ProtectedRoute>
-              <AppLayout />
+              <AppPage />
             </ProtectedRoute>
           }
-        >
-          <Route path="/inbox"    element={<InboxPage />} />
-          <Route path="/clients"  element={<ClientsPage />} />
-        </Route>
+        />
 
-        <Route path="*" element={<Navigate to="/inbox" replace />} />
+        <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </BrowserRouter>
   )

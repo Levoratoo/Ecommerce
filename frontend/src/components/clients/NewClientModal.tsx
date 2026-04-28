@@ -4,13 +4,14 @@ import { api } from '@/lib/api'
 import type { Client, Company } from '@/types'
 
 interface Props {
-  onClose:   () => void
-  onCreate:  (client: Client) => void
+  onClose:          () => void
+  onCreate:         (client: Client) => void
+  defaultCompanyId?: string
 }
 
-export default function NewClientModal({ onClose, onCreate }: Props) {
+export default function NewClientModal({ onClose, onCreate, defaultCompanyId }: Props) {
   const [companies, setCompanies] = useState<Company[]>([])
-  const [form, setForm] = useState({ name: '', whatsapp: '', email: '', notes: '', company_id: '' })
+  const [form, setForm] = useState({ name: '', whatsapp: '', email: '', notes: '', company_id: defaultCompanyId ?? '' })
   const [saving, setSaving]   = useState(false)
   const [error, setError]     = useState<string | null>(null)
 

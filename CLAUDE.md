@@ -546,21 +546,20 @@ A sequência abaixo garante que algo funcional exista o mais cedo possível, cad
 3. Frontend: ConversationList + MessageThread + useSSE hook
 4. Frontend atualiza em tempo real via SSE
 
-### Fase 4 — Clientes (próxima)
-1. Backend: CRUD completo (`GET`, `POST`, `PATCH`, `DELETE /api/v1/clients`)
-2. Frontend: página de clientes com sistema de abas
-3. Cada cliente abre em aba própria com histórico de conversa
-4. Testar: cadastrar cliente manualmente, abrir múltiplas abas
+### Fase 4 — Clientes ✅ Concluída
+1. Backend: CRUD completo (`GET`, `POST`, `PATCH`, `DELETE /api/v1/clients`) — com filtros `?search=` e `?company_id=`
+2. Frontend: layout completo com AppSidebar + ClientColumn + sistema de abas
+3. Cada cliente abre em aba própria com histórico de conversa e painel de detalhes
 
-### Fase 5 — Empresas
-1. Backend: CRUD de empresas (`/api/v1/companies`) + vinculação de clientes
-2. Frontend: página de empresas com lista e formulário
-3. Vincular clientes a empresas dentro da aba da empresa
+### Fase 5 — Empresas (backend ✅ / frontend UI pendente)
+1. Backend: CRUD de empresas (`/api/v1/companies`) ✅
+2. Frontend: modal de criação via sidebar ✅ — tela de detalhes da empresa (contatos internos) pendente
+3. Empresas aparecem na sidebar com ícone colorido por índice; filtram clientes por empresa ✅
 
-### Fase 6 — Lembretes
-1. Backend: CRUD de lembretes (`/api/v1/reminders`)
-2. Frontend: listagem + criação de lembretes vinculados a clientes
-3. Polling a cada 60s para notificações de lembretes vencidos
+### Fase 6 — Lembretes (backend ✅ / formulário de criação pendente)
+1. Backend: CRUD de lembretes (`/api/v1/reminders`) com filtros `?linked_type=&linked_id=` ✅
+2. Frontend: visualização no ClientDetailPanel e na view "Lembretes" da sidebar ✅ — formulário de criação pendente
+3. Polling de notificações — pendente
 
 ### Fase 7 — Gerenciamento WhatsApp
 1. Backend: rotas `/api/v1/whatsapp/status`, `/connect`, `/disconnect`
@@ -718,18 +717,24 @@ if (secret !== process.env.EVOLUTION_WEBHOOK_SECRET) {
 **Última sessão:** 2026-04-28
 
 **O que foi feito:**
-- Reset de escopo: Pipeline Kanban removido; novos módulos adicionados (Clientes, Empresas, Lembretes)
-- Schema do banco reescrito do zero com novas tabelas: `companies`, `company_contacts`, `clients`, `reminders`; `conversations` agora referencia `clients` (não `contacts`); `messages` usa `created_at` e índice único parcial em `whatsapp_message_id`
-- Auth migrada para cookie-based (Auth.js session) — sem Bearer token no frontend
-- Inbox completa: ConversationList, MessageThread, useSSE hook, SSE endpoint, rotas de conversas e mensagens
-- Login funcional, inbox exibindo conversas em tempo real
+- CRUD de clientes no backend com filtros `?search=` e `?company_id=`
+- CRUD de empresas no backend (GET, POST, PATCH, DELETE)
+- CRUD de lembretes no backend — rota nova `GET/POST/PATCH/DELETE /api/v1/reminders` com filtros por `linked_type` e `linked_id`
+- Novo layout completo do frontend reconstruído a partir de mockup HTML:
+  - `AppSidebar` (64px, fundo #111) — avatar do usuário, ícones de empresa por cor de índice, botão nova empresa (borda tracejada), ícones "Todos os clientes" e "Lembretes", botão sair
+  - `ClientColumn` (240px) contextual — muda para clientes da empresa selecionada, todos os clientes, ou lista de lembretes
+  - `ChatMessages` — cabeçalho com nome · empresa · whatsapp, histórico de mensagens, input pill com botão de envio circular
+  - `ClientDetailPanel` (220px, painel direito) — avatar, info do cliente, lembretes pendentes
+  - `AppPage` — orquestrador único com todo o estado; navegação por estado interno, sem mudança de rota; sistema de abas
+  - `NewCompanyModal` — criação de empresa direto pela sidebar
+  - `NewClientModal` atualizado com `defaultCompanyId` para pré-selecionar empresa no contexto de empresa ativa
+- `App.tsx` simplificado para rota única `/* → AppPage`
 
 **Pendências:**
 - Fase 2B: implementar `POST /webhooks/evolution` (webhook processor com UPSERT de clients)
-- Fase 4: módulo Clientes (CRUD backend + frontend com abas)
-- Fase 5: módulo Empresas
-- Fase 6: módulo Lembretes
-- Fase 7: gerenciamento WhatsApp (QR Code, status)
+- Fase 5 (UI): tela de detalhes da empresa — contatos internos, lembretes vinculados à empresa
+- Fase 6 (UI): formulário de criação de lembretes; polling de notificações de lembretes vencidos
+- Fase 7: gerenciamento WhatsApp (QR Code, status da instância)
 - Fase 8: deploy completo (backend Railway, frontend Vercel)
 
 **Detalhes técnicos importantes — Evolution API no Fly.io:**
