@@ -3,9 +3,9 @@ import { useAuthStore } from '@/store/auth'
 
 // Rota protegida: redireciona para /login se não houver token
 export default function ProtectedRoute({ children }: { children: React.ReactNode }) {
-  const token = useAuthStore((s) => s.token)
+  const user = useAuthStore((s) => s.user)
 
-  if (!token) {
+  if (!user) {
     return <Navigate to="/login" replace />
   }
 

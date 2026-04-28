@@ -1,9 +1,6 @@
-// Funções de autenticação — login e logout via Auth.js no backend.
-
 const BASE_URL = import.meta.env.VITE_API_URL as string
 
 export interface LoginResult {
-  token: string
   user: {
     id: string
     name: string | null
@@ -14,21 +11,29 @@ export interface LoginResult {
 }
 
 export async function login(email: string, password: string): Promise<LoginResult> {
-  // Auth.js v5: endpoint de credentials é /api/auth/callback/credentials
-  const response = await fetch(`${BASE_URL}/api/auth/callback/credentials`, {
+  const csrfRes = await fetch(`${BASE_URL}/api/auth/csrf`, { credentials: 'include' })
+  if (!csrfRes.ok) throw new Error('Falha ao iniciar autenticação')
+  const { csrfToken } = await csrfRes.json() as { csrfToken: string }
+
+  const body = new URLSearchParams({ csrfToken, email, password, redirect: 'false' })
+  await fetch(`${BASE_URL}/api/auth/callback/credentials`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ email, password }),
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: body.toString(),
+    credentials: 'include',
   })
 
-  if (!response.ok) {
-    const error = await response.json().catch(() => ({}))
-    throw new Error((error as { message?: string }).message ?? 'Email ou senha inválidos')
-  }
+  const sessionRes = await fetch(`${BASE_URL}/api/auth/session`, { credentials: 'include' })
+  const session = await sessionRes.json() as { user?: LoginResult['user'] }
 
-  return response.json() as Promise<LoginResult>
+  if (!session?.user?.id) throw new Error('Email ou senha inválidos')
+
+  return { user: session.user }
 }
 
-export async function logout(apiUrl: string): Promise<void> {
-  await fetch(`${apiUrl}/api/auth/signout`, { method: 'POST' })
+export async function logout(): Promise<void> {
+  await fetch(`${BASE_URL}/api/auth/signout`, {
+    method: 'POST',
+    credentials: 'include',
+  })
 }

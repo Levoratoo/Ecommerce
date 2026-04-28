@@ -1,33 +1,27 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { MessageSquare, Users, Kanban } from 'lucide-react'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
 import { login } from '@/lib/auth'
 import { useAuthStore } from '@/store/auth'
 
-const features = [
-  {
-    Icon: MessageSquare,
-    title: 'Caixa de entrada unificada',
-    desc: 'Todas as conversas do WhatsApp em um painel centralizado.',
-  },
-  {
-    Icon: Users,
-    title: 'Contatos organizados',
-    desc: 'Cadastre clientes e acesse o histórico completo de cada conversa.',
-  },
-  {
-    Icon: Kanban,
-    title: 'Pipeline de vendas',
-    desc: 'Visualize e mova seus leads com um Kanban intuitivo.',
-  },
-]
+// OpenType features que definem a identidade tipográfica do design system
+const ff: React.CSSProperties = { fontFeatureSettings: '"cv01", "ss03"' }
 
-// Estilo base dos inputs: sobrescreve os padrões do shadcn
-const inputClass =
-  'h-auto rounded-lg border-[#E0E0E0] px-4 py-3 text-sm placeholder:text-gray-300 focus-visible:ring-melon-400 focus-visible:ring-offset-0'
+const inputStyle: React.CSSProperties = {
+  backgroundColor: 'rgba(255,255,255,0.02)',
+  border: '1px solid rgba(255,255,255,0.08)',
+  borderRadius: '6px',
+  padding: '12px 14px',
+  fontSize: '15px',
+  fontWeight: 400,
+  lineHeight: 1.5,
+  color: '#d0d6e0',
+  outline: 'none',
+  width: '100%',
+  boxSizing: 'border-box',
+  letterSpacing: '-0.165px',
+  fontFamily: 'inherit',
+  ...ff,
+}
 
 export default function LoginPage() {
   const navigate = useNavigate()
@@ -44,7 +38,7 @@ export default function LoginPage() {
     setLoading(true)
     try {
       const result = await login(email, password)
-      setAuth(result.user, result.token)
+      setAuth(result.user)
       navigate('/inbox')
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Erro ao fazer login')
@@ -54,110 +48,188 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen flex">
+    <>
+      <style>{`
+        .ml-input::placeholder { color: rgba(255,255,255,0.2); }
+        .ml-input:focus {
+          border-color: rgba(255,255,255,0.22) !important;
+          box-shadow: rgba(0,0,0,0.1) 0px 4px 12px;
+        }
+        .ml-btn:hover:not(:disabled) { filter: brightness(0.9); }
+        .ml-btn:disabled { opacity: 0.55; cursor: not-allowed; }
+      `}</style>
 
-      {/* ── Painel esquerdo — formulário ── */}
-      <div className="flex-1 bg-white flex flex-col min-w-0">
+      <div
+        style={{
+          minHeight: '100vh',
+          display: 'flex',
+          fontFamily: 'Inter Variable, Inter, -apple-system, system-ui, sans-serif',
+          ...ff,
+        }}
+      >
+        {/* ── Painel esquerdo — formulário ── */}
+        <div
+          style={{
+            flex: 1,
+            backgroundColor: '#0f1011',
+            display: 'flex',
+            flexDirection: 'column',
+            minWidth: 0,
+          }}
+        >
+          {/* Marca */}
+          <header style={{ padding: '32px 40px' }}>
+            <span
+              style={{
+                fontSize: '18px',
+                fontWeight: 510,
+                color: '#f7f8f8',
+                letterSpacing: '-0.165px',
+                ...ff,
+              }}
+            >
+              Melão
+            </span>
+          </header>
 
-        {/* Logo — com respiro generoso do canto */}
-        <header className="px-10 py-8">
-          <span className="text-xl font-semibold tracking-tight text-gray-900">
-            Melão
-          </span>
-        </header>
-
-        {/* Formulário — centralizado verticalmente */}
-        <div className="flex-1 flex items-center justify-center px-8 pb-16">
-          <div className="w-full max-w-[360px] flex flex-col gap-6">
-
-            <h1 className="text-[28px] font-semibold leading-tight text-gray-900">
-              Entrar na sua conta
-            </h1>
-
-            <form onSubmit={handleSubmit} className="flex flex-col gap-5">
-              <div className="flex flex-col gap-1.5">
-                <Label htmlFor="email" className="text-sm font-medium text-gray-700">
-                  Endereço de email
-                </Label>
-                <Input
-                  id="email"
-                  type="email"
-                  autoComplete="email"
-                  required
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  placeholder="seu@email.com"
-                  className={inputClass}
-                />
-              </div>
-
-              <div className="flex flex-col gap-1.5">
-                <Label htmlFor="password" className="text-sm font-medium text-gray-700">
-                  Senha
-                </Label>
-                <Input
-                  id="password"
-                  type="password"
-                  autoComplete="current-password"
-                  required
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  placeholder="••••••••"
-                  className={inputClass}
-                />
-              </div>
-
-              {error && (
-                <p className="text-sm text-red-600 bg-red-50 border border-red-100 rounded-lg px-4 py-3">
-                  {error}
-                </p>
-              )}
-
-              <Button
-                type="submit"
-                disabled={loading}
-                className="w-full h-12 rounded-lg bg-[#F5E642] hover:bg-[#e8d93a] text-gray-900 font-semibold text-sm shadow-none"
-              >
-                {loading ? 'Entrando...' : 'Entrar'}
-              </Button>
-            </form>
-
-          </div>
-        </div>
-      </div>
-
-      {/* ── Painel direito — apresentação ── */}
-      <div className="hidden lg:flex w-[420px] shrink-0 flex-col justify-end p-10 bg-[#F5E642]">
-        <div className="flex flex-col gap-8">
-
-          {/* Título */}
-          <h2
-            className="text-gray-900"
-            style={{ fontSize: '30px', fontWeight: 700, lineHeight: 1.2 }}
+          {/* Formulário centralizado verticalmente */}
+          <div
+            style={{
+              flex: 1,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              padding: '0 32px 64px',
+            }}
           >
-            Atendimento pelo WhatsApp, sem perder nenhum lead.
-          </h2>
+            <div
+              style={{
+                width: '100%',
+                maxWidth: '360px',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '24px',
+              }}
+            >
+              <h1
+                style={{
+                  fontSize: '28px',
+                  fontWeight: 300,
+                  lineHeight: 1.2,
+                  letterSpacing: '-0.288px',
+                  color: '#f7f8f8',
+                  margin: 0,
+                  ...ff,
+                }}
+              >
+                Entrar na sua conta
+              </h1>
 
-          {/* Feature bullets */}
-          <div className="flex flex-col gap-5">
-            {features.map(({ Icon, title, desc }) => (
-              <div key={title} className="flex gap-3 items-start">
-                <div className="w-8 h-8 rounded-lg bg-black/10 flex items-center justify-center shrink-0 mt-0.5">
-                  <Icon size={15} strokeWidth={2} className="text-gray-900" />
+              <form
+                onSubmit={handleSubmit}
+                style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}
+              >
+                {/* Email */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                  <label
+                    htmlFor="email"
+                    style={{
+                      fontSize: '13px',
+                      fontWeight: 510,
+                      color: '#8a8f98',
+                      letterSpacing: '-0.13px',
+                      ...ff,
+                    }}
+                  >
+                    Endereço de email
+                  </label>
+                  <input
+                    id="email"
+                    type="email"
+                    autoComplete="email"
+                    required
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    placeholder="seu@email.com"
+                    className="ml-input"
+                    style={inputStyle}
+                  />
                 </div>
-                <div>
-                  <p className="text-sm font-semibold text-gray-900">{title}</p>
-                  <p className="text-sm text-gray-700 mt-0.5 leading-relaxed">{desc}</p>
+
+                {/* Senha */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                  <label
+                    htmlFor="password"
+                    style={{
+                      fontSize: '13px',
+                      fontWeight: 510,
+                      color: '#8a8f98',
+                      letterSpacing: '-0.13px',
+                      ...ff,
+                    }}
+                  >
+                    Senha
+                  </label>
+                  <input
+                    id="password"
+                    type="password"
+                    autoComplete="current-password"
+                    required
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    placeholder="••••••••"
+                    className="ml-input"
+                    style={inputStyle}
+                  />
                 </div>
-              </div>
-            ))}
+
+                {/* Erro */}
+                {error && (
+                  <p
+                    style={{
+                      fontSize: '13px',
+                      color: '#ef4444',
+                      backgroundColor: 'rgba(239,68,68,0.08)',
+                      border: '1px solid rgba(239,68,68,0.18)',
+                      borderRadius: '6px',
+                      padding: '10px 14px',
+                      margin: 0,
+                      lineHeight: 1.5,
+                      ...ff,
+                    }}
+                  >
+                    {error}
+                  </p>
+                )}
+
+                {/* Botão principal — accent #F2E600 via inline style */}
+                <button
+                  type="submit"
+                  disabled={loading}
+                  className="ml-btn"
+                  style={{
+                    backgroundColor: '#F2E600',
+                    color: '#08090a',
+                    border: 'none',
+                    borderRadius: '6px',
+                    padding: '13px 16px',
+                    fontSize: '15px',
+                    fontWeight: 590,
+                    letterSpacing: '-0.165px',
+                    width: '100%',
+                    cursor: 'pointer',
+                    fontFamily: 'inherit',
+                    ...ff,
+                  }}
+                >
+                  {loading ? 'Entrando...' : 'Entrar'}
+                </button>
+              </form>
+            </div>
           </div>
-
-          {/* Rodapé do painel */}
-          <p className="text-xs text-gray-600">Melão — CRM para WhatsApp</p>
         </div>
-      </div>
 
-    </div>
+      </div>
+    </>
   )
 }
