@@ -1,0 +1,22 @@
+{
+  "permissions": {
+    "allow": [
+      "mcp__claude_ai_Notion__notion-search",
+      "mcp__claude_ai_Notion__notion-fetch",
+      "mcp__claude_ai_Notion__notion-update-page",
+      "Bash(npm create *)",
+      "Bash(npm install *)",
+      "Bash(npm run *)",
+      "Bash(npx shadcn@latest add button input label card separator tabs dialog dropdown-menu toast --overwrite)",
+      "Bash(npx shadcn@latest add button input label card separator tabs dialog dropdown-menu sonner --overwrite -y)",
+      "Bash(curl -fsSL \"https://raw.githubusercontent.com/VoltAgent/awesome-design-md/main/design-md/linear.app/DESIGN.md\" -o DESIGN.md)",
+      "Read(//c/c/Users/thiag/Desktop/Projetos Code/melao-gestor/**)",
+      "Bash(curl -fsSL \"https://api.github.com/repos/VoltAgent/awesome-design-md/git/trees/main?recursive=1\")",
+      "Bash(curl -fsSL \"https://raw.githubusercontent.com/VoltAgent/awesome-design-md/main/design-md/linear.app/README.md\" -o DESIGN.md)",
+      "Bash(curl -fsSL \"https://getdesign.md/linear.app/design-md\" -o DESIGN.md)",
+      "Bash(npx getdesign@latest add linear.app)",
+      "Bash(cp linear.app/DESIGN.md ./DESIGN.md)",
+      "Bash(rm -rf linear.app)"
+    ]
+  }
+}

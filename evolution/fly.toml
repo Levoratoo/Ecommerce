@@ -2,7 +2,10 @@ app = "melao-evolution-api"
 primary_region = "gru"
 
 [build]
-  image = "atendai/evolution-api:latest"
+
+[env]
+  DATABASE_ENABLED = "true"
+  DATABASE_PROVIDER = "postgresql"
 
 [http_service]
   internal_port = 8080

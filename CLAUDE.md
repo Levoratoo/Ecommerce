@@ -703,16 +703,31 @@ if (secret !== process.env.EVOLUTION_WEBHOOK_SECRET) {
 
 ## 12. Estado Atual do Projeto
 
-**Última sessão:** 2026-04-27
+**Última sessão:** 2026-04-28
 
 **O que foi feito:**
-- Fase 1 concluída: banco de dados (schema + seed), backend Express com Auth.js, middleware de tenant e isolamento por `organization_id`, seed com organização "Projeto Sardinha" e usuário owner criados
-- Fase 2 iniciada: app `melao-evolution-api` criado no Fly.io com volume persistente, variáveis de ambiente configuradas — parado porque a Evolution API não suporta SQLite e precisa de PostgreSQL
+- Fase 1 concluída (sessão anterior): banco de dados, backend Express com Auth.js, middleware de tenant, seed com organização "Projeto Sardinha"
+- Fase 2A concluída: banco `evolution_api` criado no Neon; Evolution API deployada no Fly.io com Dockerfile customizado; conectada ao banco correto; respondendo autenticada (`GET /instance/fetchInstances` retorna `[]`)
+- Decisões técnicas desta sessão: a Evolution API usa `DATABASE_CONNECTION_URI` (não `DATABASE_URL`) para conexão Prisma; a imagem Docker tem um `.env` interno com valores hardcoded do Docker Compose que sobrescreve env vars — resolvido com entrypoint customizado que corrige o `.env` antes do startup e usa `prisma migrate reset --force`; Evolution API hospedada no Fly.io com Dockerfile em `evolution/`
 
 **Pendências:**
-- Fase 2: criar banco `evolution_api` no Neon e finalizar deploy da Evolution API no Fly.io
-- Fase 2: implementar código do backend (webhook processor, rotas WhatsApp, cliente Evolution API)
+- Fase 2B: implementar código do backend (webhook processor, rotas WhatsApp, cliente Evolution API, SSE manager)
+- Fase 2C: criar instância WhatsApp e conectar via QR Code (fazer junto com a primeira cliente ou ao final do desenvolvimento)
 - Fase 3: frontend (caixa de entrada, SSE, envio de mensagens)
 - Fase 4: contatos com abas
 - Fase 5: pipeline Kanban
 - Fase 6: deploy completo (backend no Railway, frontend no Vercel)
+
+**Detalhes técnicos importantes — Evolution API no Fly.io:**
+- App: `melao-evolution-api.fly.dev`
+- API Key: secret `AUTHENTICATION_API_KEY` no Fly.io (valor: `YOUR_EVOLUTION_API_KEY`)
+- Banco: `evolution_api` no Neon (projeto melao-gestor), conectado via URL direta (sem pooler) em `DATABASE_CONNECTION_URI`
+- Dockerfile customizado em `evolution/` com `docker-entrypoint.sh` que corrige o `.env` da imagem antes do startup
+- `SERVER_URL` deve apontar para `https://melao-evolution-api.fly.dev`
+
+## Design System
+
+Siga o arquivo DESIGN.md na raiz do projeto para todas as decisões visuais.
+Nunca use emojis em UI. Ícones exclusivamente via Lucide React.
+Cor de accent do produto: #F2E600 — substitui qualquer accent color definido no DESIGN.md.
+Cores com classes Tailwind arbitrárias como bg-[#F2E600] não funcionam neste projeto — use sempre style={{ backgroundColor: "#F2E600" }} para aplicar essa cor.
