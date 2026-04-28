@@ -20,7 +20,7 @@ export const authConfig: ExpressAuthConfig = {
           if (!email || !password) return null
 
           const users = await db`
-            SELECT id, organization_id, name, email, role, password_hash
+            SELECT id, organization_id, name, email, password_hash
             FROM users
             WHERE email = ${email}
           `
@@ -31,15 +31,12 @@ export const authConfig: ExpressAuthConfig = {
           const isValid = await bcrypt.compare(password, user.password_hash as string)
           if (!isValid) return null
 
-        // O objeto retornado aqui chega no callback jwt como "user"
-        return {
-          id: user.id as string,
-          email: user.email as string,
-          name: user.name as string,
-          // Campos extras que precisamos no JWT
-          organizationId: user.organization_id as string,
-          role: user.role as string,
-        }
+          return {
+            id: user.id as string,
+            email: user.email as string,
+            name: user.name as string,
+            organizationId: user.organization_id as string,
+          }
         } catch (err) {
           console.error("[auth] erro no authorize:", err)
           return null

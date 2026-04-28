@@ -14,7 +14,7 @@ router.get("/", async (req, res) => {
   const offset = (page - 1) * limit
 
   try {
-    const rows = await db`
+const rows = await db`
       SELECT id, organization_id, name, cnpj, email, phone, notes, created_at
       FROM companies
       WHERE organization_id = ${orgId}
