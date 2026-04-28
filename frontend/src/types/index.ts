@@ -8,6 +8,8 @@ export interface User {
 export interface Client {
   id: string
   organizationId: string
+  companyId: string | null
+  company: Pick<Company, 'id' | 'name'> | null
   name: string | null
   email: string | null
   whatsapp: string | null
@@ -45,7 +47,9 @@ export interface Conversation {
   lastMessageAt: string | null
   unreadCount: number
   createdAt: string
-  client: Pick<Client, 'id' | 'name' | 'whatsapp'> | null
+  client: (Pick<Client, 'id' | 'name' | 'whatsapp'> & {
+    company: Pick<Company, 'id' | 'name'> | null
+  }) | null
 }
 
 export interface Message {

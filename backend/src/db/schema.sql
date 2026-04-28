@@ -92,6 +92,7 @@ CREATE INDEX idx_company_contacts_organization ON company_contacts(organization_
 CREATE TABLE clients (
   id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   organization_id UUID         NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
+  company_id      UUID         REFERENCES companies(id) ON DELETE SET NULL,
   name            VARCHAR(255),
   email           VARCHAR(255),
   whatsapp        VARCHAR(50),
@@ -100,6 +101,7 @@ CREATE TABLE clients (
 );
 
 CREATE INDEX idx_clients_organization ON clients(organization_id);
+CREATE INDEX idx_clients_company      ON clients(company_id);
 CREATE INDEX idx_clients_whatsapp     ON clients(organization_id, whatsapp);
 
 -- =============================================

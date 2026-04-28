@@ -23,11 +23,11 @@ CRM web integrado ao WhatsApp, distribuído como SaaS multi-tenant. Permite que 
 - Monetização e onboarding self-service são pós-MVP
 
 **Módulos do MVP:**
-1. **Autenticação** — login com email e senha, JWT via Auth.js, 1 usuário por organização
-2. **Caixa de entrada WhatsApp** — conversas em tempo real, indicador de não lidas, envio e recebimento via Evolution API
-3. **Clientes** — cadastro, edição, vinculação com conversas, abas por cliente (estado via Zustand)
-4. **Empresa contratante** — dados da empresa, lista de contatos internos
-5. **Lembretes** — título, descrição, data/hora, vínculo com cliente ou empresa, notificação visual via polling
+1. **Autenticação** — login com email e senha, cookie-based via Auth.js, 1 usuário por organização
+2. **Caixa de entrada WhatsApp** — conversas em tempo real, badge de não lidas, nome da empresa abaixo do cliente (ou badge "Sem empresa"), envio e recebimento via Evolution API
+3. **Clientes** — duas formas de entrada: automática via WhatsApp (sem empresa, badge "Sem empresa") e manual (modal com nome, email, WhatsApp, observações e empresa obrigatória); abas por cliente no frontend
+4. **Empresas** — múltiplas empresas por usuária; cadastro via modal (nome, CNPJ, email, telefone, observações); cada empresa tem tela própria com dados, contatos internos e lembretes vinculados
+5. **Lembretes** — título, descrição, data/hora, vínculo com cliente ou empresa, notificação visual via polling a cada 60s
 
 **Pipeline Kanban foi removido do escopo.**
 
@@ -120,128 +120,113 @@ Usuário clica "Enviar" → POST /api/v1/messages
 ### Schema Completo
 
 ```sql
--- =============================================
--- ORGANIZATIONS (tenants)
--- =============================================
+-- ORGANIZATIONS
 CREATE TABLE organizations (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   name VARCHAR(255) NOT NULL,
-  slug VARCHAR(100) UNIQUE NOT NULL,       -- usado em URLs e logs
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
--- =============================================
--- USERS
--- =============================================
+-- USERS (1 por organização)
 CREATE TABLE users (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   organization_id UUID NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
-  email VARCHAR(255) UNIQUE NOT NULL,
   name VARCHAR(255),
-  role VARCHAR(50) DEFAULT 'member',       -- 'owner' | 'member'
-  password_hash VARCHAR(255),              -- gerenciado pelo Auth.js
+  email VARCHAR(255) UNIQUE NOT NULL,
+  password_hash VARCHAR(255),
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
-CREATE INDEX idx_users_organization ON users(organization_id);
-
--- =============================================
--- EVOLUTION API INSTANCES (uma por organização)
--- =============================================
+-- EVOLUTION API INSTANCES (1 por organização)
 CREATE TABLE evolution_instances (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   organization_id UUID NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
-  instance_name VARCHAR(255) NOT NULL UNIQUE,  -- usado como chave na Evolution API
-  api_url VARCHAR(500) NOT NULL,               -- URL base da Evolution API desse tenant
-  api_key VARCHAR(500) NOT NULL,               -- chave de acesso à instância
-  phone_number VARCHAR(50),                    -- número conectado (preenchido após conexão)
-  status VARCHAR(50) DEFAULT 'disconnected',   -- 'connected' | 'disconnected' | 'qr_pending'
+  instance_name VARCHAR(255) NOT NULL UNIQUE,
+  api_url VARCHAR(500) NOT NULL,
+  api_key VARCHAR(500) NOT NULL,
+  phone_number VARCHAR(50),
+  status VARCHAR(50) DEFAULT 'disconnected',
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
-CREATE INDEX idx_evolution_organization ON evolution_instances(organization_id);
-
--- =============================================
--- CONTACTS
--- =============================================
-CREATE TABLE contacts (
+-- COMPANIES (empresas contratantes — múltiplas por usuária)
+CREATE TABLE companies (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   organization_id UUID NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
-  phone_number VARCHAR(50) NOT NULL,
-  name VARCHAR(255),
-  company VARCHAR(255),
+  name VARCHAR(255) NOT NULL,
+  cnpj VARCHAR(20),
+  email VARCHAR(255),
+  phone VARCHAR(50),
   notes TEXT,
-  tags TEXT[],                                 -- array de strings
-  created_at TIMESTAMPTZ DEFAULT NOW(),
-  updated_at TIMESTAMPTZ DEFAULT NOW(),
-  UNIQUE(organization_id, phone_number)         -- mesmo número não duplica dentro do tenant
+  created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
-CREATE INDEX idx_contacts_organization ON contacts(organization_id);
-CREATE INDEX idx_contacts_phone ON contacts(organization_id, phone_number);
+-- COMPANY_CONTACTS (pessoas dentro de cada empresa)
+CREATE TABLE company_contacts (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  company_id UUID NOT NULL REFERENCES companies(id) ON DELETE CASCADE,
+  organization_id UUID NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
+  name VARCHAR(255) NOT NULL,
+  role VARCHAR(255),
+  email VARCHAR(255),
+  whatsapp VARCHAR(50),
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
 
--- =============================================
+-- CLIENTS (clientes finais / B2C)
+-- company_id nullable: clientes que chegam via WhatsApp entram sem empresa
+CREATE TABLE clients (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  organization_id UUID NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
+  company_id UUID REFERENCES companies(id) ON DELETE SET NULL,
+  name VARCHAR(255),
+  email VARCHAR(255),
+  whatsapp VARCHAR(50),
+  notes TEXT,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  UNIQUE(organization_id, whatsapp)
+);
+
 -- CONVERSATIONS
--- =============================================
 CREATE TABLE conversations (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   organization_id UUID NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
-  contact_id UUID NOT NULL REFERENCES contacts(id) ON DELETE CASCADE,
-  whatsapp_chat_id VARCHAR(255) NOT NULL,      -- ID interno do WhatsApp (ex: 5585999887766@s.whatsapp.net)
+  client_id UUID REFERENCES clients(id) ON DELETE SET NULL,
+  whatsapp_chat_id VARCHAR(255) NOT NULL,
   last_message_at TIMESTAMPTZ,
   unread_count INT DEFAULT 0,
   created_at TIMESTAMPTZ DEFAULT NOW(),
   UNIQUE(organization_id, whatsapp_chat_id)
 );
 
-CREATE INDEX idx_conversations_organization ON conversations(organization_id);
-CREATE INDEX idx_conversations_contact ON conversations(contact_id);
-CREATE INDEX idx_conversations_last_message ON conversations(organization_id, last_message_at DESC);
-
--- =============================================
 -- MESSAGES
--- =============================================
 CREATE TABLE messages (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   organization_id UUID NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
   conversation_id UUID NOT NULL REFERENCES conversations(id) ON DELETE CASCADE,
-  whatsapp_message_id VARCHAR(255),            -- ID da mensagem no WhatsApp (para deduplicação)
-  direction VARCHAR(10) NOT NULL,              -- 'in' | 'out'
+  whatsapp_message_id VARCHAR(255),
+  direction VARCHAR(10) NOT NULL,  -- 'in' | 'out'
   content TEXT NOT NULL,
-  status VARCHAR(50) DEFAULT 'sent',           -- 'sent' | 'delivered' | 'read' | 'failed'
-  sent_at TIMESTAMPTZ DEFAULT NOW(),
-  UNIQUE(organization_id, whatsapp_message_id) -- evita duplicatas de webhook
+  created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
-CREATE INDEX idx_messages_conversation ON messages(conversation_id, sent_at);
-CREATE INDEX idx_messages_organization ON messages(organization_id);
+-- Evita duplicatas de webhook quando whatsapp_message_id está presente
+CREATE UNIQUE INDEX idx_messages_whatsapp_id
+  ON messages(organization_id, whatsapp_message_id)
+  WHERE whatsapp_message_id IS NOT NULL;
 
--- =============================================
--- PIPELINE
--- =============================================
-CREATE TABLE pipeline_stages (
+-- REMINDERS (vinculados a client ou company via linked_type + linked_id)
+CREATE TABLE reminders (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   organization_id UUID NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
-  name VARCHAR(100) NOT NULL,
-  position INT NOT NULL,                       -- ordem das colunas no Kanban
-  is_default BOOLEAN DEFAULT FALSE             -- se é uma coluna padrão do sistema
+  title VARCHAR(255) NOT NULL,
+  description TEXT,
+  due_at TIMESTAMPTZ NOT NULL,
+  completed BOOLEAN DEFAULT FALSE,
+  linked_type VARCHAR(20),  -- 'client' | 'company' | null
+  linked_id UUID,
+  created_at TIMESTAMPTZ DEFAULT NOW()
 );
-
--- Colunas padrão (inseridas via seed por organização):
--- Novo lead (0), Em contato (1), Proposta enviada (2), Fechado (3), Perdido (4)
-
-CREATE TABLE pipeline_cards (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  organization_id UUID NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
-  contact_id UUID NOT NULL REFERENCES contacts(id) ON DELETE CASCADE,
-  stage_id UUID NOT NULL REFERENCES pipeline_stages(id),
-  position INT NOT NULL,                       -- posição dentro da coluna
-  created_at TIMESTAMPTZ DEFAULT NOW(),
-  updated_at TIMESTAMPTZ DEFAULT NOW()
-);
-
-CREATE INDEX idx_pipeline_cards_organization ON pipeline_cards(organization_id);
-CREATE INDEX idx_pipeline_cards_stage ON pipeline_cards(stage_id);
 ```
 
 ---
@@ -249,26 +234,17 @@ CREATE INDEX idx_pipeline_cards_stage ON pipeline_cards(stage_id);
 ## 4. API Backend — Endpoints
 
 **Base URL:** `https://[backend-railway-url]/api/v1`  
-**Auth:** todas as rotas (exceto `/auth` e `/webhooks`) exigem `Authorization: Bearer <jwt>` no header.  
-**Middleware de tenant:** extrai `organization_id` do JWT e injeta em `req.organizationId` — presente em todas as rotas protegidas.
+**Auth:** todas as rotas (exceto `/api/auth` e `/webhooks`) exigem sessão cookie válida (Auth.js).  
+**Middleware de tenant:** extrai `organization_id` da sessão Auth.js e injeta em `req.organizationId`.
 
 ### Autenticação (`/api/auth`)
 
-Gerenciado pelo Auth.js — rotas padrão da lib.
-
+Cookie-based via Auth.js v5. Fluxo do frontend:
 ```
-POST /api/auth/signin          — login com email/senha
-POST /api/auth/signout         — logout
-GET  /api/auth/session         — sessão atual
-```
-
-JWT payload mínimo:
-```json
-{
-  "userId": "uuid",
-  "organizationId": "uuid",
-  "role": "owner | member"
-}
+GET  /api/auth/csrf                     — obtém CSRF token
+POST /api/auth/callback/credentials    — login com email/senha (form-urlencoded + csrfToken)
+GET  /api/auth/session                 — sessão atual (user.id, user.organizationId)
+POST /api/auth/signout                 — logout
 ```
 
 ---
@@ -277,17 +253,15 @@ JWT payload mínimo:
 
 ```
 GET  /api/v1/conversations
-  → lista todas as conversas do tenant, ordenadas por last_message_at DESC
-  → inclui: id, contact.name, contact.phone_number, last_message_at, unread_count
+  → lista conversas do tenant ordenadas por last_message_at DESC
+  → inclui: id, client.{id,name,whatsapp,company:{id,name}}, last_message_at, unread_count
   → query params: ?page=1&limit=20
 
 GET  /api/v1/conversations/:id
-  → detalhes da conversa + últimas 50 mensagens
-  → query params: ?before=<message_id> (paginação)
+  → detalhes da conversa + últimas 50 mensagens em ordem cronológica
 
 POST /api/v1/conversations/:id/read
   → zera unread_count da conversa
-  → body: {}
 ```
 
 ---
@@ -298,47 +272,72 @@ POST /api/v1/conversations/:id/read
 POST /api/v1/messages
   → envia mensagem de texto via Evolution API
   → body: { conversation_id: string, content: string }
-  → salva no banco com direction: 'out'
+  → salva no banco com direction: 'out', emite SSE
   → retorna a mensagem salva
 ```
 
 ---
 
-### Contatos
+### Clientes
 
 ```
-GET  /api/v1/contacts
-  → lista contatos do tenant
+GET  /api/v1/clients
+  → lista clientes do tenant
+  → inclui company aninhada quando vinculada
   → query params: ?search=nome&page=1&limit=20
 
-GET  /api/v1/contacts/:id
-  → detalhes do contato + última conversa + histórico de mensagens
+GET  /api/v1/clients/:id
+  → detalhes do cliente + conversa vinculada
 
-POST /api/v1/contacts
-  → cadastro manual de contato
-  → body: { phone_number, name?, company?, notes?, tags? }
+POST /api/v1/clients
+  → cadastro manual
+  → body: { name, whatsapp, email?, notes?, company_id (obrigatório) }
 
-PATCH /api/v1/contacts/:id
-  → edição parcial
-  → body: { name?, company?, notes?, tags? }
+PATCH /api/v1/clients/:id
+  → edição parcial: name?, email?, notes?, company_id?
 
-DELETE /api/v1/contacts/:id
-  → soft delete ou remoção (definir antes de implementar)
+DELETE /api/v1/clients/:id
+  → remoção permanente
 ```
 
 ---
 
-### Pipeline
+### Empresas
 
 ```
-GET  /api/v1/pipeline
-  → retorna todas as colunas com seus cards
-  → resposta: { stages: [{ id, name, position, cards: [...] }] }
-  → cada card inclui: id, contact.name, contact.phone_number, last_message preview
+GET  /api/v1/companies
+  → lista empresas do tenant
 
-PATCH /api/v1/pipeline/cards/:id/move
-  → move card para outra coluna ou muda posição
-  → body: { stage_id: string, position: number }
+GET  /api/v1/companies/:id
+  → dados da empresa + contatos internos + lembretes vinculados
+
+POST /api/v1/companies
+  → cadastro
+  → body: { name, cnpj?, email?, phone?, notes? }
+
+PATCH /api/v1/companies/:id
+  → edição parcial
+
+DELETE /api/v1/companies/:id
+  → remoção (clients com essa empresa ficam com company_id = null)
+```
+
+---
+
+### Lembretes
+
+```
+GET  /api/v1/reminders
+  → lista lembretes do tenant, ordenados por due_at ASC
+  → query params: ?linked_type=client&linked_id=uuid
+
+POST /api/v1/reminders
+  → body: { title, description?, due_at, linked_type?, linked_id? }
+
+PATCH /api/v1/reminders/:id
+  → edição parcial: title?, description?, due_at?, completed?
+
+DELETE /api/v1/reminders/:id
 ```
 
 ---
@@ -742,11 +741,11 @@ if (secret !== process.env.EVOLUTION_WEBHOOK_SECRET) {
 
 **Schema atual — tabelas principais:**
 - `organizations`, `users`, `evolution_instances`
-- `clients` (whatsapp, name, company_name, notes, tags)
-- `companies` (name, domain, notes, tags) + `company_contacts` (pivot)
+- `companies` (name, cnpj, email, phone, notes) + `company_contacts` (contatos internos)
+- `clients` (company_id nullable FK → companies, whatsapp, name, email, notes)
 - `conversations` (client_id nullable, whatsapp_chat_id, unread_count)
-- `messages` (direction 'in'/'out', content, created_at)
-- `reminders` (client_id, title, due_at, done)
+- `messages` (direction 'in'/'out', content, created_at; UNIQUE parcial em whatsapp_message_id)
+- `reminders` (linked_type 'client'|'company', linked_id, title, due_at, completed)
 
 ## Design System
 
