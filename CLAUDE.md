@@ -572,6 +572,33 @@ A sequência abaixo garante que algo funcional exista o mais cedo possível, cad
 3. Variáveis de ambiente configuradas em produção
 4. Teste end-to-end com a primeira cliente
 
+### Fase 9 — Inteligência Artificial (pós-deploy)
+
+**Contexto:** funcionalidades de IA integradas ao CRM para aumentar a produtividade da usuária. Todas as chamadas de IA passam pelo backend — a chave da API nunca é exposta no frontend. **O provedor de IA não está definido** — avaliar custo/benefício entre opções com free tier generoso antes de implementar.
+
+**Candidatos a provedor (prioridade: custo baixo ou free tier):**
+- **Groq** — inferência extremamente rápida, free tier generoso (modelos LLaMA/Mixtral)
+- **DeepSeek** — custo por token muito baixo, API compatível com OpenAI SDK
+- **OpenAI** — referência de mercado, sem free tier mas custo baixo em modelos menores (gpt-4o-mini)
+- **Anthropic (Claude API)** — qualidade alta, sem free tier; considerar apenas se custo for viável
+
+**Funcionalidades planejadas — por prioridade:**
+
+**Alta prioridade:**
+1. **Resumo de conversa** — botão na thread que gera um parágrafo com o histórico da conversa; evita reler tudo após dias sem contato
+2. **Sugestão de resposta** — botão "Sugerir resposta" no input; IA analisa as últimas mensagens e propõe um rascunho editável
+3. **Classificação de urgência** — ao receber mensagem nova, classifica como Alta / Média / Baixa; exibe badge na lista de conversas
+
+**Média prioridade:**
+4. **Análise de sentimento** — badge visual (satisfeito / neutro / insatisfeito) baseado no tom das últimas mensagens
+5. **Sugestão de lembrete** — quando IA detecta data ou compromisso na conversa, exibe botão "Criar lembrete para isso"
+6. **Extração de entidades** — detecta datas, valores e nome de empresa na conversa e sugere atualizar o cadastro do cliente
+
+**Pós-MVP:**
+7. **Auto-tagging** — categoriza o cliente por assunto predominante (suporte, vendas, financeiro)
+
+**Princípio de implementação:** todas as features de IA devem ser opcionais e não bloquear o fluxo principal. Se a chamada de IA falhar, o CRM continua funcionando normalmente.
+
 ---
 
 ## 8. Variáveis de Ambiente

@@ -9,6 +9,7 @@ import eventsRouter from "./routes/events"
 import clientsRouter from "./routes/clients"
 import companiesRouter from "./routes/companies"
 import remindersRouter from "./routes/reminders"
+import webhooksRouter from "./routes/webhooks"
 
 const app = express()
 const PORT = process.env.PORT || 3000
@@ -32,6 +33,7 @@ app.use("/api/v1/clients", clientsRouter)
 app.use("/api/v1/companies", companiesRouter)
 app.use("/api/v1/reminders", remindersRouter)
 app.use("/api/events", eventsRouter)
+app.use("/webhooks", webhooksRouter)
 
 app.get("/health", (_req, res) => {
   res.json({ status: "ok" })

@@ -6,6 +6,8 @@ primary_region = "gru"
 [env]
   DATABASE_ENABLED = "true"
   DATABASE_PROVIDER = "postgresql"
+  REDIS_ENABLED = "false"
+  CACHE_REDIS_ENABLED = "false"
 
 [http_service]
   internal_port = 8080
