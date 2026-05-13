@@ -8,3 +8,5 @@ frontend/.env.local
 .DS_Store
 backend/cookies.txt
 backend/test-auth.mjs
+backend/reset-password.mjs
+CLAUDE.md
