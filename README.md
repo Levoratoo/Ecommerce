@@ -343,4 +343,4 @@ O projeto está com o backend e frontend do MVP praticamente completos. O bloque
 
 ## Licença
 
-Projeto privado. Todos os direitos reservados.
+MIT License — veja o arquivo [LICENSE](LICENSE) para detalhes.

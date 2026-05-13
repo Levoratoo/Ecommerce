@@ -6,3 +6,5 @@ frontend/dist/
 backend/.env
 frontend/.env.local
 .DS_Store
+backend/cookies.txt
+backend/test-auth.mjs

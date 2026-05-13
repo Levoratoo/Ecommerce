@@ -12,15 +12,9 @@
 
 ## 1. Visão Geral do Projeto
 
-CRM web integrado ao WhatsApp, distribuído como SaaS multi-tenant. Permite que profissionais autônomos e pequenas empresas gerenciem conversas de WhatsApp, contatos e pipeline de vendas em um único painel.
+CRM web integrado ao WhatsApp, distribuído como SaaS multi-tenant. Permite que profissionais autônomos e pequenas empresas gerenciem conversas de WhatsApp, contatos e relacionamento comercial em um único painel.
 
-**Objetivo do MVP:** entregar as três funcionalidades core para a primeira cliente (usuária solo, MEI) com arquitetura já preparada para múltiplos tenants.
-
-**Estratégia de produto:**
-- Primeira cliente: usuária única, organização única — usada para validar o produto
-- Arquitetura multi-tenant desde o dia 1: isolamento por `organization_id` em todas as tabelas
-- Novas organizações criadas manualmente via script/SQL no MVP — painel de super admin é fase futura
-- Monetização e onboarding self-service são pós-MVP
+**Arquitetura multi-tenant desde o dia 1:** isolamento por `organization_id` em todas as tabelas. Novas organizações são criadas via script/SQL (`backend/src/db/seed.ts`) — painel de super admin é fase futura.
 
 **Módulos do MVP:**
 1. **Autenticação** — login com email e senha, cookie-based via Auth.js, 1 usuário por organização
@@ -527,7 +521,7 @@ A sequência abaixo garante que algo funcional exista o mais cedo possível, cad
 1. Criar projeto Neon, rodar schema SQL
 2. Configurar backend Express com Auth.js (login/logout com email+senha, cookie-based)
 3. Implementar middleware de tenant (extrai `organization_id` da sessão Auth.js)
-4. Seed: criar organização e usuário owner da primeira cliente
+4. Seed: criar organização e usuário owner (`backend/src/db/seed.ts`)
 5. Login funcional com redirecionamento para inbox
 
 ### Fase 2A — Evolution API deployada ✅ Concluída
@@ -564,13 +558,12 @@ A sequência abaixo garante que algo funcional exista o mais cedo possível, cad
 ### Fase 7 — Gerenciamento WhatsApp
 1. Backend: rotas `/api/v1/whatsapp/status`, `/connect`, `/disconnect`
 2. Frontend: painel de status + QR Code
-3. Conectar instância junto com a primeira cliente
 
 ### Fase 8 — Deploy final
 1. Deploy do frontend no Vercel
-2. Deploy do backend no Railway
+2. Deploy do backend no Fly.io
 3. Variáveis de ambiente configuradas em produção
-4. Teste end-to-end com a primeira cliente
+4. Teste end-to-end completo
 
 ### Fase 9 — Inteligência Artificial (pós-deploy)
 
@@ -713,7 +706,7 @@ if (secret !== process.env.EVOLUTION_WEBHOOK_SECRET) {
 
 | Decisão | Escolha | Motivo |
 |---|---|---|
-| Autenticação | Auth.js | Mais rápido de implementar, suporte a JWT, adequado para dev solo iniciante |
+| Autenticação | Auth.js | Mais rápido de implementar, suporte a JWT, cookie-based sem dependência de JWT manual |
 | Tempo real | SSE | Suficiente para o MVP (só servidor → cliente), mais simples que WebSocket |
 | Mídia | Fora do MVP | Somente texto no v1 — reduz complexidade de armazenamento e edge cases |
 | Super admin | Manual via SQL | Overhead desnecessário com um único tenant ativo |
@@ -723,61 +716,14 @@ if (secret !== process.env.EVOLUTION_WEBHOOK_SECRET) {
 
 ---
 
-## 11. Contexto Adicional para o Claude Code
+## 11. Notas de Implementação
 
-- **Desenvolvedor:** solo, nível iniciante — prefere implementações explícitas com comentários explicativos no código, evite "magia" implícita
-- **Custo:** priorizar tiers gratuitos (Neon free, Railway free tier, Vercel free)
-- **Sem testes automatizados no MVP** — validação manual por enquanto
-- **TypeScript no frontend** — backend pode ser JavaScript ou TypeScript (a definir)
-- **Drag and drop no Kanban:** usar `@dnd-kit/core` (mais moderno que react-beautiful-dnd)
-- **Sistema de abas de contatos:** estado gerenciado no frontend (array de contatos abertos), não persistido no servidor
-- **Nome do produto:** não definido — usar placeholder `[NOME]` até decisão do fundador
-- **Primeiro deploy:** Railway e Vercel free tiers — observar limites de sleep e cold start
+- **Sem testes automatizados no MVP** — validação manual
 - **Evolution API:** não suporta SQLite — requer PostgreSQL ou MySQL
 - **Auth.js v5:** endpoint de login com credentials é `POST /api/auth/callback/credentials`, não `/api/auth/signin`
-- **Evolution API hospedagem:** self-hosted no Fly.io (não Railway, para não onerar os bots existentes do dev)
-
----
-
-## 12. Estado Atual do Projeto
-
-**Última sessão:** 2026-04-28
-
-**O que foi feito:**
-- CRUD de clientes no backend com filtros `?search=` e `?company_id=`
-- CRUD de empresas no backend (GET, POST, PATCH, DELETE)
-- CRUD de lembretes no backend — rota nova `GET/POST/PATCH/DELETE /api/v1/reminders` com filtros por `linked_type` e `linked_id`
-- Novo layout completo do frontend reconstruído a partir de mockup HTML:
-  - `AppSidebar` (64px, fundo #111) — avatar do usuário, ícones de empresa por cor de índice, botão nova empresa (borda tracejada), ícones "Todos os clientes" e "Lembretes", botão sair
-  - `ClientColumn` (240px) contextual — muda para clientes da empresa selecionada, todos os clientes, ou lista de lembretes
-  - `ChatMessages` — cabeçalho com nome · empresa · whatsapp, histórico de mensagens, input pill com botão de envio circular
-  - `ClientDetailPanel` (220px, painel direito) — avatar, info do cliente, lembretes pendentes
-  - `AppPage` — orquestrador único com todo o estado; navegação por estado interno, sem mudança de rota; sistema de abas
-  - `NewCompanyModal` — criação de empresa direto pela sidebar
-  - `NewClientModal` atualizado com `defaultCompanyId` para pré-selecionar empresa no contexto de empresa ativa
-- `App.tsx` simplificado para rota única `/* → AppPage`
-
-**Pendências:**
-- Fase 2B: implementar `POST /webhooks/evolution` (webhook processor com UPSERT de clients)
-- Fase 5 (UI): tela de detalhes da empresa — contatos internos, lembretes vinculados à empresa
-- Fase 6 (UI): formulário de criação de lembretes; polling de notificações de lembretes vencidos
-- Fase 7: gerenciamento WhatsApp (QR Code, status da instância)
-- Fase 8: deploy completo (backend Railway, frontend Vercel)
-
-**Detalhes técnicos importantes — Evolution API no Fly.io:**
-- App: `melao-evolution-api.fly.dev`
-- API Key: secret `AUTHENTICATION_API_KEY` no Fly.io (valor: `YOUR_EVOLUTION_API_KEY`)
-- Banco: `evolution_api` no Neon (projeto melao-gestor), conectado via URL direta (sem pooler) em `DATABASE_CONNECTION_URI`
-- Dockerfile customizado em `evolution/` com `docker-entrypoint.sh` que corrige o `.env` da imagem antes do startup
-- `SERVER_URL` deve apontar para `https://melao-evolution-api.fly.dev`
-
-**Schema atual — tabelas principais:**
-- `organizations`, `users`, `evolution_instances`
-- `companies` (name, cnpj, email, phone, notes) + `company_contacts` (contatos internos)
-- `clients` (company_id nullable FK → companies, whatsapp, name, email, notes)
-- `conversations` (client_id nullable, whatsapp_chat_id, unread_count)
-- `messages` (direction 'in'/'out', content, created_at; UNIQUE parcial em whatsapp_message_id)
-- `reminders` (linked_type 'client'|'company', linked_id, title, due_at, completed)
+- **Evolution API hospedagem:** self-hosted no Fly.io com Dockerfile customizado em `evolution/`
+- **Sistema de abas:** estado gerenciado no frontend (array de contatos abertos em `AppPage`), não persistido no servidor
+- **Cores Tailwind arbitrárias:** classes como `bg-[#F2E600]` não funcionam neste projeto — usar `style={{ backgroundColor: "#F2E600" }}`
 
 ## Design System
 

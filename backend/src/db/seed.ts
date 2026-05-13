@@ -2,7 +2,7 @@ import "dotenv/config"
 import bcrypt from "bcryptjs"
 import { db } from "./index"
 
-const ORG_NAME     = "Projeto Sardinha"
+const ORG_NAME     = "Minha Organização"
 const USER_NAME    = "Admin"
 const USER_EMAIL   = "user@example.com"
 const USER_PASSWORD = "your_password_here"
