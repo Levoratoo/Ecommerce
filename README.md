@@ -1,3 +1,5 @@
+![Capa do projeto](./capareadme.png)
+
 # melao-gestor
 
 CRM web integrado ao WhatsApp, distribuído como SaaS multi-tenant. Permite que profissionais autônomos e pequenas empresas gerenciem conversas de WhatsApp, contatos e relacionamento comercial em um único painel — sem depender do WhatsApp Web.
