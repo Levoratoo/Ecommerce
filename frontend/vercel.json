@@ -1,5 +1,8 @@
 {
   "rewrites": [
+    { "source": "/api/:path*", "destination": "https://ecommerce-api-levorato.vercel.app/api/:path*" },
+    { "source": "/webhooks/:path*", "destination": "https://ecommerce-api-levorato.vercel.app/webhooks/:path*" },
+    { "source": "/health", "destination": "https://ecommerce-api-levorato.vercel.app/health" },
     { "source": "/(.*)", "destination": "/index.html" }
   ]
 }

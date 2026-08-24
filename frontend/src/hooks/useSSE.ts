@@ -1,6 +1,6 @@
 import { useEffect, useRef } from 'react'
 
-const BASE_URL = import.meta.env.VITE_API_URL as string
+const BASE_URL = (import.meta.env.VITE_API_URL as string | undefined) ?? ''
 
 export function useSSE(onEvent: (event: string, data: unknown) => void) {
   const callbackRef = useRef(onEvent)
