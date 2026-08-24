@@ -6,6 +6,8 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
+    "build:api": "cd ../backend && npm install && npm run build && cp api/index.mjs ../frontend/api/index.mjs",
+    "vercel-build": "npm run build:api && npm run build",
     "lint": "eslint .",
     "preview": "vite preview"
   },

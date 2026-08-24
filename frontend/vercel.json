@@ -1,8 +1,9 @@
 {
+  "buildCommand": "npm run vercel-build",
   "rewrites": [
-    { "source": "/api/:path*", "destination": "https://ecommerce-api-levorato.vercel.app/api/:path*" },
-    { "source": "/webhooks/:path*", "destination": "https://ecommerce-api-levorato.vercel.app/webhooks/:path*" },
-    { "source": "/health", "destination": "https://ecommerce-api-levorato.vercel.app/health" },
+    { "source": "/api/:path*", "destination": "/api/index.mjs" },
+    { "source": "/webhooks/:path*", "destination": "/api/index.mjs" },
+    { "source": "/health", "destination": "/api/index.mjs" },
     { "source": "/(.*)", "destination": "/index.html" }
   ]
 }
