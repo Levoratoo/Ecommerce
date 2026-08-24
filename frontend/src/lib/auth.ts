@@ -11,19 +11,33 @@ export interface LoginResult {
 }
 
 export async function login(email: string, password: string): Promise<LoginResult> {
-  const csrfRes = await fetch(`${BASE_URL}/api/auth/csrf`, { credentials: 'include' })
+  let csrfRes: Response
+  try {
+    csrfRes = await fetch(`${BASE_URL}/api/auth/csrf`, { credentials: 'include' })
+  } catch {
+    throw new Error('Não foi possível conectar ao servidor. Aguarde o deploy e tente novamente.')
+  }
   if (!csrfRes.ok) throw new Error('Falha ao iniciar autenticação')
   const { csrfToken } = await csrfRes.json() as { csrfToken: string }
 
   const body = new URLSearchParams({ csrfToken, email, password, redirect: 'false' })
-  await fetch(`${BASE_URL}/api/auth/callback/credentials`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-    body: body.toString(),
-    credentials: 'include',
-  })
+  try {
+    await fetch(`${BASE_URL}/api/auth/callback/credentials`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: body.toString(),
+      credentials: 'include',
+    })
+  } catch {
+    throw new Error('Não foi possível conectar ao servidor. Aguarde o deploy e tente novamente.')
+  }
 
-  const sessionRes = await fetch(`${BASE_URL}/api/auth/session`, { credentials: 'include' })
+  let sessionRes: Response
+  try {
+    sessionRes = await fetch(`${BASE_URL}/api/auth/session`, { credentials: 'include' })
+  } catch {
+    throw new Error('Não foi possível conectar ao servidor. Aguarde o deploy e tente novamente.')
+  }
   const session = await sessionRes.json() as { user?: LoginResult['user'] }
 
   if (!session?.user?.id) throw new Error('Email ou senha inválidos')
