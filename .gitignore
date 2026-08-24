@@ -42,3 +42,6 @@ skills-lock.json
 /vendor
 yarn.lock
 yarn-error.log
+
+# Upstream CI workflows (need workflow scope to push)
+.github/workflows/
