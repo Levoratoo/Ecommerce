@@ -39,8 +39,10 @@ app.get("/health", (_req, res) => {
   res.json({ status: "ok" })
 })
 
-app.listen(PORT, () => {
-  console.log(`Servidor rodando na porta ${PORT}`)
-})
+if (!process.env.VERCEL) {
+  app.listen(PORT, "0.0.0.0", () => {
+    console.log(`Servidor rodando na porta ${PORT}`)
+  })
+}
 
 export default app
