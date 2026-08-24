@@ -1,12 +1,12 @@
 import * as esbuild from "esbuild"
 
 await esbuild.build({
-  entryPoints: ["api/index.ts"],
+  entryPoints: ["server/vercel-entry.ts"],
   bundle: true,
   platform: "node",
   target: "node20",
   format: "esm",
-  outfile: "api/index.mjs",
+  outfile: "api/index.js",
   banner: {
     js: "import { createRequire } from 'module'; const require = createRequire(import.meta.url);",
   },
