@@ -1,0 +1,27 @@
+# Quick local Bagisto (official image — MySQL + Nginx bundled)
+# Usage: docker compose -f docker-compose.bagisto.yml up -d
+#
+# Store:  http://localhost:8080
+# Admin:  http://localhost:8080/admin/login
+#         admin@example.com / admin123
+#
+# Avoid env values with "/" (e.g. America/Sao_Paulo, http://...) —
+# the image entrypoint uses sed and breaks on them.
+
+services:
+  bagisto:
+    image: webkul/bagisto:latest
+    container_name: ecommerce-bagisto
+    ports:
+      - "8080:80"
+    environment:
+      APP_CURRENCY: BRL
+      APP_ADMIN_URL: admin
+    volumes:
+      - bagisto-mysql:/var/lib/mysql
+      - bagisto-storage:/var/www/bagisto/storage
+    restart: unless-stopped
+
+volumes:
+  bagisto-mysql:
+  bagisto-storage:
