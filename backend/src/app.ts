@@ -12,7 +12,7 @@ import remindersRouter from "./routes/reminders"
 import webhooksRouter from "./routes/webhooks"
 
 const app = express()
-const PORT = process.env.PORT || 3000
+const PORT = Number(process.env.PORT) || 3000
 
 app.use(
   cors({
