@@ -6,7 +6,7 @@ await esbuild.build({
   platform: "node",
   target: "node20",
   format: "esm",
-  outfile: "api/index.js",
+  outfile: "api/index.mjs",
   banner: {
     js: "import { createRequire } from 'module'; const require = createRequire(import.meta.url);",
   },
