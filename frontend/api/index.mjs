@@ -35411,8 +35411,37 @@ var authConfig = {
     }
   },
   session: { strategy: "jwt" },
-  // Necessário para funcionar sem HTTPS em desenvolvimento
-  trustHost: true
+  trustHost: true,
+  useSecureCookies: process.env.NODE_ENV === "production",
+  cookies: {
+    sessionToken: {
+      name: process.env.NODE_ENV === "production" ? "__Secure-authjs.session-token" : "authjs.session-token",
+      options: {
+        httpOnly: true,
+        sameSite: "lax",
+        path: "/",
+        secure: process.env.NODE_ENV === "production"
+      }
+    },
+    callbackUrl: {
+      name: process.env.NODE_ENV === "production" ? "__Secure-authjs.callback-url" : "authjs.callback-url",
+      options: {
+        httpOnly: true,
+        sameSite: "lax",
+        path: "/",
+        secure: process.env.NODE_ENV === "production"
+      }
+    },
+    csrfToken: {
+      name: process.env.NODE_ENV === "production" ? "__Host-authjs.csrf-token" : "authjs.csrf-token",
+      options: {
+        httpOnly: true,
+        sameSite: "lax",
+        path: "/",
+        secure: process.env.NODE_ENV === "production"
+      }
+    }
+  }
 };
 
 // src/routes/conversations.ts
@@ -36252,9 +36281,26 @@ var webhooks_default = router7;
 // src/app.ts
 var app = (0, import_express9.default)();
 var PORT = Number(process.env.PORT) || 3e3;
+app.set("trust proxy", 1);
+var allowedOrigins = new Set(
+  [
+    process.env.FRONTEND_URL,
+    "http://localhost:5173",
+    "http://localhost:4173",
+    "https://ecommerce-levorato.vercel.app",
+    "https://ecommerce-eight-snowy-19.vercel.app",
+    "https://ecommerce-git-main-levorato.vercel.app"
+  ].filter(Boolean)
+);
 app.use(
   (0, import_cors.default)({
-    origin: process.env.FRONTEND_URL || "http://localhost:5173",
+    origin(origin, callback2) {
+      if (!origin || allowedOrigins.has(origin) || origin.endsWith("-levorato.vercel.app")) {
+        callback2(null, true);
+        return;
+      }
+      callback2(null, false);
+    },
     credentials: true
   })
 );

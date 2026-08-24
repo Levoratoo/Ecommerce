@@ -21,15 +21,26 @@ export async function login(email: string, password: string): Promise<LoginResul
   const { csrfToken } = await csrfRes.json() as { csrfToken: string }
 
   const body = new URLSearchParams({ csrfToken, email, password, redirect: 'false' })
+  let loginRes: Response
   try {
-    await fetch(`${BASE_URL}/api/auth/callback/credentials`, {
+    loginRes = await fetch(`${BASE_URL}/api/auth/callback/credentials`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
       body: body.toString(),
       credentials: 'include',
+      redirect: 'manual',
     })
   } catch {
     throw new Error('Não foi possível conectar ao servidor. Aguarde o deploy e tente novamente.')
+  }
+
+  if (loginRes.type === 'opaqueredirect' || (loginRes.status >= 300 && loginRes.status < 400)) {
+    // Auth.js redireciona em sucesso — segue para checar a sessão
+  } else if (!loginRes.ok && loginRes.status !== 0) {
+    const text = await loginRes.text().catch(() => '')
+    if (text.includes('MissingCSRF') || loginRes.status === 403) {
+      throw new Error('Falha de autenticação (CSRF). Atualize a página e tente novamente.')
+    }
   }
 
   let sessionRes: Response

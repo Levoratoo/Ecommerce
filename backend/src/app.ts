@@ -14,9 +14,29 @@ import webhooksRouter from "./routes/webhooks"
 const app = express()
 const PORT = Number(process.env.PORT) || 3000
 
+// Necessário atrás do proxy da Vercel para Auth.js gerar cookies Secure e URLs https://
+app.set("trust proxy", 1)
+
+const allowedOrigins = new Set(
+  [
+    process.env.FRONTEND_URL,
+    "http://localhost:5173",
+    "http://localhost:4173",
+    "https://ecommerce-levorato.vercel.app",
+    "https://ecommerce-eight-snowy-19.vercel.app",
+    "https://ecommerce-git-main-levorato.vercel.app",
+  ].filter(Boolean) as string[]
+)
+
 app.use(
   cors({
-    origin: process.env.FRONTEND_URL || "http://localhost:5173",
+    origin(origin, callback) {
+      if (!origin || allowedOrigins.has(origin) || origin.endsWith("-levorato.vercel.app")) {
+        callback(null, true)
+        return
+      }
+      callback(null, false)
+    },
     credentials: true,
   })
 )
